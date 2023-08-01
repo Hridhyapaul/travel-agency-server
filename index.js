@@ -28,6 +28,7 @@ async function run() {
 
         const usersCollection = client.db("travelODB").collection("users");
         const destinationsCollection = client.db("travelODB").collection("destinations");
+        const bookingCollection = client.db("travelODB").collection("booking");
 
         // Create user api...
         app.post('/users', async (req, res) => {
@@ -107,6 +108,14 @@ async function run() {
                 res.status(500).send({ error: "An error occurred while fetching destinations data" });
             }
         });
+
+        // Post api to insert booking collection
+
+        app.post('/booking', async(req, res) => {
+            const item = req.body;
+            const result = await bookingCollection.insertOne(item)
+            res.send(result)
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
