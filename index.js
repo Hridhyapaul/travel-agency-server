@@ -67,21 +67,44 @@ async function run() {
             }
         });
 
-        // want to get country, countryImage and accommodation from destinationsCollection
-        app.get('/popularDestinations', async (req, res) => {
+        // get accommodation details by id...
+        app.get('/accommodation/:country/:id', async (req, res) => {
+            const countryName = req.params.country;
+            const id = parseInt(req.params.id);
             try {
-                // Project only the desired fields (country, countryImage, accommodation)
-                const projection = {
-                    _id: 1, // Exclude the "_id" field from the response
-                    country: 1,
-                    countryImage: 1,
-                    accommodation: 1,
-                };
-                const result = await destinationsCollection.find({}, projection).toArray();
-                res.send(result);
+                const country = await destinationsCollection.findOne({ country: countryName });
+                if (!country) {
+                    return res.status(404).json({ message: 'Country not found.' });
+                }
+                const accommodation = country.accommodation.find((acc) => acc.acc_id === id);
+                if (!accommodation) {
+                    return res.status(404).json({ message: 'Accommodation not found.' });
+                }
+                res.send(accommodation);
             } catch (error) {
-                console.error("Error fetching destinations:", error);
-                res.status(500).send({ error: "An error occurred while fetching destinations" });
+                console.error('Error fetching accommodation details:', error);
+                return res.status(500).json({ message: 'Internal server error.' });
+            }
+        });
+
+        // Get accommodation from all countries and put then in an one array to get together..
+        app.get('/accommodations', async (req, res) => {
+            try {
+                const destinations = await destinationsCollection.find().toArray();
+
+                // Create an empty array to store all accommodations
+                const allAccommodations = [];
+
+                // Iterate through each destination and add its accommodations to the allAccommodations array
+                destinations.forEach((destination) => {
+                    const accommodations = destination.accommodation;
+                    allAccommodations.push(...accommodations);
+                });
+
+                res.send(allAccommodations);
+            } catch (error) {
+                console.error("Error fetching destinations data:", error);
+                res.status(500).send({ error: "An error occurred while fetching destinations data" });
             }
         });
 
