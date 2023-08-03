@@ -1,9 +1,10 @@
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const app = express()
 const cors = require('cors');
-const port = process.env.PORT || 5000;
 require('dotenv').config()
+const port = process.env.PORT || 5000;
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // middleware
 app.use(cors());
@@ -28,7 +29,9 @@ async function run() {
 
         const usersCollection = client.db("travelODB").collection("users");
         const destinationsCollection = client.db("travelODB").collection("destinations");
+        const countryCollection = client.db("travelODB").collection("countries");
         const bookingCollection = client.db("travelODB").collection("booking");
+        const paymentsCollection = client.db("travelODB").collection("payments");
 
         // Create user api...
         app.post('/users', async (req, res) => {
@@ -54,68 +57,140 @@ async function run() {
             res.send(result)
         })
 
-        // get api for finding package
-        app.get('/packages/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
+        // Get country api...
+        app.get('/countries', async (req, res) => {
+            const result = await countryCollection.find().toArray();
+            res.send(result)
+        })
+
+        // Get api to get country wise accommodation
+        app.get('/accommodation', async (req, res) => {
             try {
-                // Fetch the package details based on the provided packageId
-                const packageDetails = await destinationsCollection.findOne(query);
-                res.send(packageDetails);
-            } catch (error) {
-                console.error("Error fetching package details:", error);
-                res.status(500).send({ error: "An error occurred while fetching package details" });
+                const accommodationsByCountry = await destinationsCollection.aggregate([
+                    {
+                        $lookup: {
+                            from: 'countries',
+                            localField: 'country_id',
+                            foreignField: 'country_id',
+                            as: 'countryInfo'
+                        }
+                    },
+                    {
+                        $unwind: '$countryInfo'
+                    },
+                    {
+                        $group: {
+                            _id: '$countryInfo',
+                            accommodations: {
+                                $push: {
+                                    _id: '$_id',
+                                    name: '$name',
+                                    location: '$location',
+                                    about: '$about',
+                                    countryName: '$countryName',
+                                    price: '$price',
+                                    image: '$image',
+                                    numberOfDay: '$numberOfDay',
+                                    details: '$details',
+                                    reviews: '$reviews',
+                                    tourPlan: '$tourPlan',
+                                    includedServices: '$includedServices'
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: '$_id._id',
+                            country_id: '$_id.country_id',
+                            country: '$_id.country',
+                            slogan: '$_id.slogan',
+                            countryImage: '$_id.countryImage',
+                            accommodations: 1
+                        }
+                    }
+                ]).toArray();
+
+                res.json(accommodationsByCountry);
+            } catch (err) {
+                console.error('Error fetching accommodations: ', err);
+                res.status(500).json({ error: 'Internal Server Error' });
             }
         });
 
-        // get accommodation details by id...
-        app.get('/accommodation/:country/:id', async (req, res) => {
-            const countryName = req.params.country;
-            const id = parseInt(req.params.id);
+        // get api for finding package
+        app.get('/packages/:text', async (req, res) => {
+            const countryName = req.params.text;
             try {
-                const country = await destinationsCollection.findOne({ country: countryName });
-                if (!country) {
-                    return res.status(404).json({ message: 'Country not found.' });
+                // Fetch the package details based on the provided countryName
+                const packageQuery = { countryName };
+                const packageDetails = await destinationsCollection.find(packageQuery).toArray();
+
+                // Fetch the country information based on the provided countryName
+                const countryQuery = { country: countryName };
+                const countryInfo = await countryCollection.findOne(countryQuery);
+
+                if (!packageDetails || !countryInfo) {
+                    return res.status(404).json({ message: 'Package not found for the provided countryName' });
                 }
-                const accommodation = country.accommodation.find((acc) => acc.acc_id === id);
-                if (!accommodation) {
-                    return res.status(404).json({ message: 'Accommodation not found.' });
-                }
-                res.send(accommodation);
+
+                // Combine the package details and country information
+                const formattedPackageDetails = packageDetails.map((package) => {
+                    return {
+                        _id: package._id,
+                        location: package.location,
+                        name: package.name,
+                        about: package.about,
+                        countryName: package.countryName,
+                        country_id: package.country_id,
+                        image: package.image,
+                        price: package.price,
+                        numberOfDay: package.numberOfDay,
+                        details: package.details,
+                        reviews: package.reviews,
+                    };
+                });
+
+                const result = {
+
+                    _id: countryInfo._id,
+                    country_id: countryInfo.country_id,
+                    country: countryInfo.country,
+                    slogan: countryInfo.slogan,
+                    countryImage: countryInfo.countryImage,
+                    accommodation: formattedPackageDetails,
+
+                };
+
+                res.json(result);
+            } catch (error) {
+                console.error('Error fetching package details:', error);
+                res.status(500).json({ error: 'An error occurred while fetching package details' });
+            }
+        });
+
+
+        // get accommodation details by id...
+        app.get('/accommodation/:id', async (req, res) => {
+            const id = (req.params.id);
+            const query = { _id: new ObjectId(id) }
+            try {
+                const result = await destinationsCollection.findOne(query)
+                res.send(result);
             } catch (error) {
                 console.error('Error fetching accommodation details:', error);
                 return res.status(500).json({ message: 'Internal server error.' });
             }
         });
 
-        // Get accommodation from all countries and put then in an one array to get together..
-        app.get('/accommodations', async (req, res) => {
-            try {
-                const destinations = await destinationsCollection.find().toArray();
-
-                // Create an empty array to store all accommodations
-                const allAccommodations = [];
-
-                // Iterate through each destination and add its accommodations to the allAccommodations array
-                destinations.forEach((destination) => {
-                    const accommodations = destination.accommodation;
-                    allAccommodations.push(...accommodations);
-                });
-
-                res.send(allAccommodations);
-            } catch (error) {
-                console.error("Error fetching destinations data:", error);
-                res.status(500).send({ error: "An error occurred while fetching destinations data" });
-            }
-        });
-
         // Post api to insert booking collection
-
-        app.post('/booking', async(req, res) => {
+        app.post('/booking', async (req, res) => {
             const item = req.body;
             const result = await bookingCollection.insertOne(item)
             res.send(result)
         })
+
+        
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
