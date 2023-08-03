@@ -190,6 +190,17 @@ async function run() {
             res.send(result)
         })
 
+        // Get api to get book list of user...
+        app.get('/booking', async (req, res) => {
+            const email = req.query.email
+            if (!email) {
+                res.send([])
+            }
+            const query = { email: email };
+            const result = await bookingCollection.find(query).toArray();
+            res.send(result)
+        })
+
         
 
         // Send a ping to confirm a successful connection
