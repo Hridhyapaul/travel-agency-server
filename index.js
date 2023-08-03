@@ -215,7 +215,16 @@ async function run() {
             })
         })
 
-        
+        app.post('/payments', async (req, res) => {
+            // Payment saved to the database....
+            const payments = req.body;
+            const insertResult = await paymentsCollection.insertOne(payments)
+
+            const query = { _id: { $in: payments.bookingItem_id.map(id => new ObjectId(id)) } }
+            const deleteResult = await bookingCollection.deleteMany(query)
+
+            res.send({ insertResult, deleteResult })
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
