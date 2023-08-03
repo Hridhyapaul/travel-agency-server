@@ -31,6 +31,7 @@ async function run() {
         const destinationsCollection = client.db("travelODB").collection("destinations");
         const countryCollection = client.db("travelODB").collection("countries");
         const bookingCollection = client.db("travelODB").collection("booking");
+        const bookingRequestCollection = client.db("travelODB").collection("bookingRequest");
         const paymentsCollection = client.db("travelODB").collection("payments");
 
         // Create user api...
@@ -186,7 +187,7 @@ async function run() {
         // Post api to insert booking collection
         app.post('/booking', async (req, res) => {
             const item = req.body;
-            const result = await bookingCollection.insertOne(item)
+            const result = await bookingRequestCollection.insertOne(item)
             res.send(result)
         })
 
@@ -197,8 +198,16 @@ async function run() {
                 res.send([])
             }
             const query = { email: email };
-            const result = await bookingCollection.find(query).toArray();
+            const result = await bookingRequestCollection.find(query).toArray();
             res.send(result)
+        })
+
+        // Delete api to delete booking request...
+        app.delete('/booking/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await bookingRequestCollection.deleteOne(query);
+            res.send(result);
         })
 
         // Payment intent api...
@@ -221,10 +230,13 @@ async function run() {
             const insertResult = await paymentsCollection.insertOne(payments)
 
             const query = { _id: { $in: payments.bookingItem_id.map(id => new ObjectId(id)) } }
-            const deleteResult = await bookingCollection.deleteMany(query)
+            const deleteResult = await bookingRequestCollection.deleteMany(query)
 
             res.send({ insertResult, deleteResult })
         })
+
+        // Get api to get payments
+        
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
