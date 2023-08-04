@@ -192,7 +192,7 @@ async function run() {
         })
 
         // Get api to get book list of user...
-        app.get('/booking', async (req, res) => {
+        app.get('/bookingRequest', async (req, res) => {
             const email = req.query.email
             if (!email) {
                 res.send([])
@@ -203,7 +203,7 @@ async function run() {
         })
 
         // Delete api to delete booking request...
-        app.delete('/booking/:id', async (req, res) => {
+        app.delete('/bookingRequest/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await bookingRequestCollection.deleteOne(query);
@@ -243,6 +243,66 @@ async function run() {
             const result = await paymentsCollection.find(query).sort(sort).toArray();
             res.send(result);
         })
+
+        // finding Enrolled course apis
+        app.get('/booking', async (req, res) => {
+            try {
+                const email = req.query.email;
+                const query = { email: email };
+
+                // Fetch payments based on the provided email
+                const payments = await paymentsCollection.find(query).toArray();
+
+                // Extract accommodation IDs from payments
+                const accommodationIds = payments.map(payment => payment.accommodation_id).flat().map(id => new ObjectId(id));
+
+                // Fetch accommodations matching the accommodation IDs
+                const accommodations = await destinationsCollection.find({ _id: { $in: accommodationIds } }).toArray();
+
+                // Create an object to hold the total number of tickets per accommodation
+                const accommodationTickets = {};
+
+                // Iterate through payments to calculate total tickets per accommodation
+                payments.forEach(payment => {
+                    payment.tickets.forEach(ticket => {
+                        const accommodation = ticket.accommodation;
+
+                        if (!accommodationTickets[accommodation]) {
+                            accommodationTickets[accommodation] = 0;
+                        }
+
+                        accommodationTickets[accommodation] += ticket.tickets;
+                    });
+                });
+
+                // Create an array to hold the final output
+                const output = accommodations.map(accommodation => {
+                    const totalTickets = accommodationTickets[accommodation.name] || 0;
+
+                    return {
+                        _id: accommodation._id,
+                        name: accommodation.name,
+                        location: accommodation.location,
+                        about: accommodation.about,
+                        tickets: totalTickets,
+                        countryName: accommodation.countryName,
+                        image: accommodation.image,
+                        price: accommodation.price,
+                        numberOfDay: accommodation.numberOfDay,
+                        details: accommodation.details,
+                        reviews: accommodation.reviews,
+                        includedServices: accommodation.includedServices,
+                        tourPlan: accommodation.tourPlan
+                    };
+                });
+
+                res.send(output);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
