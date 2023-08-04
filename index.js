@@ -236,7 +236,13 @@ async function run() {
         })
 
         // Get api to get payments
-        
+        app.get('/payments', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const sort = { date: -1 };
+            const result = await paymentsCollection.find(query).sort(sort).toArray();
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
