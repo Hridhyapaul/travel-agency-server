@@ -310,6 +310,62 @@ async function run() {
             }
         });
 
+        // finding all booking collection apis
+        app.get('/allBooking', async (req, res) => {
+            try {
+                // Fetch payments based on the provided email
+                const payments = await paymentsCollection.find().toArray();
+
+                // Extract accommodation IDs from payments
+                const accommodationIds = payments.map(payment => payment.accommodation_id).flat().map(id => new ObjectId(id));
+
+                // Fetch accommodations matching the accommodation IDs
+                const accommodations = await destinationsCollection.find({ _id: { $in: accommodationIds } }).toArray();
+
+                // Create an object to hold the total number of tickets per accommodation
+                const accommodationTickets = {};
+
+                // Iterate through payments to calculate total tickets per accommodation
+                payments.forEach(payment => {
+                    payment.tickets.forEach(ticket => {
+                        const accommodation = ticket.accommodation;
+
+                        if (!accommodationTickets[accommodation]) {
+                            accommodationTickets[accommodation] = 0;
+                        }
+
+                        accommodationTickets[accommodation] += ticket.tickets;
+                    });
+                });
+
+                // Create an array to hold the final output
+                const output = accommodations.map(accommodation => {
+                    const totalTickets = accommodationTickets[accommodation.name] || 0;
+
+                    return {
+                        _id: accommodation._id,
+                        name: accommodation.name,
+                        location: accommodation.location,
+                        about: accommodation.about,
+                        tickets: totalTickets,
+                        countryName: accommodation.countryName,
+                        image: accommodation.image,
+                        price: accommodation.price,
+                        numberOfDay: accommodation.numberOfDay,
+                        details: accommodation.details,
+                        reviews: accommodation.reviews,
+                        includedServices: accommodation.includedServices,
+                        tourPlan: accommodation.tourPlan
+                    };
+                });
+
+                res.send(output);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
