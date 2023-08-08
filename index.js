@@ -54,8 +54,9 @@ async function run() {
 
         // Get destinations api...
         app.get('/destinations', async (req, res) => {
-            const result = await destinationsCollection.find().toArray();
-            res.send(result)
+            const places = await destinationsCollection.find().toArray();
+            // const count = await destinationsCollection.estimatedDocumentCount();
+            res.send(places)
         })
 
         // Get country api...
@@ -235,7 +236,7 @@ async function run() {
             res.send({ insertResult, deleteResult })
         })
 
-        // Get api to get payments
+        // Get api to get payments by query email
         app.get('/payments', async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
@@ -244,7 +245,13 @@ async function run() {
             res.send(result);
         })
 
-        // finding Enrolled course apis
+        // Get api to get all payments
+        app.get('/allPayments', async (req, res) => {
+            const result = await paymentsCollection.find().toArray();
+            res.send(result);
+        })
+
+        // finding booking collection apis
         app.get('/booking', async (req, res) => {
             try {
                 const email = req.query.email;
