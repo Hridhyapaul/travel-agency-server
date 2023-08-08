@@ -282,9 +282,26 @@ async function run() {
                     });
                 });
 
+                // Create an object to hold the total amount of price per accommodation
+                const totalPaidAmount = {};
+
+                // Iterate through payments to calculate total tickets per accommodation
+                payments.forEach(payment => {
+                    payment.tickets.forEach(ticket => {
+                        const accommodation = ticket.accommodation;
+
+                        if (!totalPaidAmount[accommodation]) {
+                            totalPaidAmount[accommodation] = 0;
+                        }
+
+                        totalPaidAmount[accommodation] += ticket.paidAmount;
+                    });
+                });
+
                 // Create an array to hold the final output
                 const output = accommodations.map(accommodation => {
                     const totalTickets = accommodationTickets[accommodation.name] || 0;
+                    const paidAmount = totalPaidAmount[accommodation.name] || 0;
 
                     return {
                         _id: accommodation._id,
@@ -292,6 +309,7 @@ async function run() {
                         location: accommodation.location,
                         about: accommodation.about,
                         tickets: totalTickets,
+                        paidAmount: paidAmount,
                         countryName: accommodation.countryName,
                         image: accommodation.image,
                         price: accommodation.price,
@@ -309,6 +327,44 @@ async function run() {
                 res.status(500).send('Internal Server Error');
             }
         });
+
+        app.get('/countryStats', async (req, res) => {
+            try {
+                // Fetch payments based on the provided email
+                const payments = await paymentsCollection.find().toArray();
+
+                // Create an object to hold the country statistics
+                const countryStats = {};
+
+                // Iterate through payments to calculate country statistics
+                payments.forEach(payment => {
+                    payment.tickets.forEach(ticket => {
+                        const country = ticket.country;
+
+                        if (!countryStats[country]) {
+                            countryStats[country] = {
+                                countryName: country,
+                                count: 0,
+                                paidAmount: 0
+                            };
+                        }
+
+                        countryStats[country].count += 1;
+                        countryStats[country].paidAmount += ticket.paidAmount;
+                    });
+                });
+
+                // Convert countryStats object to an array of values
+                const countryStatsArray = Object.values(countryStats);
+
+                res.send(countryStatsArray);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+
 
         // finding all booking collection apis
         app.get('/allBooking', async (req, res) => {
@@ -338,9 +394,26 @@ async function run() {
                     });
                 });
 
+                // Create an object to hold the total amount of price per accommodation
+                const totalPaidAmount = {};
+
+                // Iterate through payments to calculate total tickets per accommodation
+                payments.forEach(payment => {
+                    payment.tickets.forEach(ticket => {
+                        const accommodation = ticket.accommodation;
+
+                        if (!totalPaidAmount[accommodation]) {
+                            totalPaidAmount[accommodation] = 0;
+                        }
+
+                        totalPaidAmount[accommodation] += ticket.paidAmount;
+                    });
+                });
+
                 // Create an array to hold the final output
                 const output = accommodations.map(accommodation => {
                     const totalTickets = accommodationTickets[accommodation.name] || 0;
+                    const paidAmount = totalPaidAmount[accommodation.name] || 0;
 
                     return {
                         _id: accommodation._id,
@@ -348,6 +421,7 @@ async function run() {
                         location: accommodation.location,
                         about: accommodation.about,
                         tickets: totalTickets,
+                        paidAmount: paidAmount,
                         countryName: accommodation.countryName,
                         image: accommodation.image,
                         price: accommodation.price,
