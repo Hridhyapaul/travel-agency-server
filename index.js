@@ -52,6 +52,20 @@ async function run() {
             res.send(result)
         })
 
+        // Patch api to update users from admin route
+        app.patch('/users/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updateRole = req.body;
+            const updateDoc = {
+                $set: {
+                    role: updateRole.role
+                }
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result)
+        })
+
         // Get destinations api...
         app.get('/destinations', async (req, res) => {
             const places = await destinationsCollection.find().toArray();
