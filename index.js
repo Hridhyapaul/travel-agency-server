@@ -85,6 +85,12 @@ async function run() {
             res.send(result)
         })
 
+        app.post('/countries', async (req, res) => {
+            const query = req.body
+            const result = await countryCollection.insertOne(query)
+            res.send(result)
+        })
+
         // Get api to get country wise accommodation
         app.get('/accommodation', async (req, res) => {
             try {
