@@ -73,6 +73,12 @@ async function run() {
             res.send(places)
         })
 
+        app.post('/destinations', async (req, res) => {
+            const query = req.body
+            const result = await destinationsCollection.insertOne(query)
+            res.send(result)
+        })
+
         // Get country api...
         app.get('/countries', async (req, res) => {
             const result = await countryCollection.find().toArray();
@@ -86,8 +92,8 @@ async function run() {
                     {
                         $lookup: {
                             from: 'countries',
-                            localField: 'country_id',
-                            foreignField: 'country_id',
+                            localField: 'countryName',
+                            foreignField: 'country',
                             as: 'countryInfo'
                         }
                     },
@@ -378,8 +384,6 @@ async function run() {
             }
         });
 
-
-
         // finding all booking collection apis
         app.get('/allBooking', async (req, res) => {
             try {
@@ -429,6 +433,8 @@ async function run() {
                     const totalTickets = accommodationTickets[accommodation.name] || 0;
                     const paidAmount = totalPaidAmount[accommodation.name] || 0;
 
+                    const payment = payments.find(payment => payment.accommodationName.includes(accommodation.name));
+
                     return {
                         _id: accommodation._id,
                         name: accommodation.name,
@@ -443,7 +449,11 @@ async function run() {
                         details: accommodation.details,
                         reviews: accommodation.reviews,
                         includedServices: accommodation.includedServices,
-                        tourPlan: accommodation.tourPlan
+                        tourPlan: accommodation.tourPlan,
+                        status: payment ? payment.status : 'unknown',
+                        traveler_email: payment.email,
+                        traveler_name: payment.name,
+                        travelerPhone: payment.phoneNumber,
                     };
                 });
 
