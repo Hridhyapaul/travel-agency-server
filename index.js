@@ -86,8 +86,13 @@ async function run() {
         })
 
         app.post('/countries', async (req, res) => {
-            const query = req.body
-            const result = await countryCollection.insertOne(query)
+            const details = req.body;
+            const query = { country: details.country }
+            const existingCountry = await countryCollection.findOne(query)
+            if (existingCountry) {
+                return res.send({ message: 'Country already exist' })
+            }
+            const result = await countryCollection.insertOne(details)
             res.send(result)
         })
 
