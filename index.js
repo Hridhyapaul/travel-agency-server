@@ -66,17 +66,26 @@ async function run() {
             res.send(result)
         })
 
-        // Get destinations api...
+        // Create a GET API for getting destinations...
         app.get('/destinations', async (req, res) => {
             const places = await destinationsCollection.find().toArray();
             // const count = await destinationsCollection.estimatedDocumentCount();
             res.send(places)
         })
 
+        // Create a POST API for adding destinations...
         app.post('/destinations', async (req, res) => {
             const query = req.body
             const result = await destinationsCollection.insertOne(query)
             res.send(result)
+        })
+
+        // Create a DELETE API for deleting single destinations...
+        app.delete('/destinations/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await destinationsCollection.deleteOne(query);
+            res.send(result);
         })
 
         // Get country api...
