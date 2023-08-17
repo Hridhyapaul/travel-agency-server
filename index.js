@@ -50,7 +50,7 @@ async function run() {
         const usersCollection = client.db("travelODB").collection("users");
         const destinationsCollection = client.db("travelODB").collection("destinations");
         const countryCollection = client.db("travelODB").collection("countries");
-        const bookingCollection = client.db("travelODB").collection("booking");
+        // const bookingCollection = client.db("travelODB").collection("booking");
         const bookingRequestCollection = client.db("travelODB").collection("bookingRequest");
         const paymentsCollection = client.db("travelODB").collection("payments");
 
@@ -60,6 +60,17 @@ async function run() {
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
             res.send({ token })
         })
+
+        // Authorization Middleware for Admin Role
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            if (user?.role !== 'Admin') {
+                return res.status(403).send({ error: true, message: 'forbidden message' });
+            }
+            next();
+        }
 
         // Create user api...
         app.post('/users', async (req, res) => {
