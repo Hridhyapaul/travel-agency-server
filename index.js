@@ -132,6 +132,7 @@ async function run() {
             res.send(result)
         })
 
+        // Create a POST API for adding countries...
         app.post('/countries', async (req, res) => {
             const details = req.body;
             const query = { country: details.country }
@@ -141,6 +142,14 @@ async function run() {
             }
             const result = await countryCollection.insertOne(details)
             res.send(result)
+        })
+
+        // Create a DELETE API for deleting single country...
+        app.delete('/countries/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await countryCollection.deleteOne(query);
+            res.send(result);
         })
 
         // Get api to get country wise accommodation
