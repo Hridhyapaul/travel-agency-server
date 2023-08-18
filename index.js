@@ -118,6 +118,20 @@ async function run() {
             res.send(result);
         })
 
+        // Created GET API for finding user email is traveler or not...
+        app.get('/users/traveler/:email', async (req, res) => {
+            const email = req.params.email;
+
+            if (req.decoded.email !== email) {
+                res.send({ traveler: false })
+            }
+
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result = { traveler: user?.role === 'Traveler' }
+            res.send(result);
+        })
+
         // Create a GET API for getting destinations...
         app.get('/destinations', async (req, res) => {
             const places = await destinationsCollection.find().toArray();
