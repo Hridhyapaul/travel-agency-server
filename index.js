@@ -152,6 +152,22 @@ async function run() {
             res.send(result);
         })
 
+        app.put('/countries/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updateCountry = req.body;
+            const countries = {
+                $set: {
+                    country: updateCountry.country,
+                    countryImage: updateCountry.countryImage,
+                    slogan: updateCountry.slogan,
+                },
+            }
+            const result = await countryCollection.updateOne(filter, countries, options)
+            res.send(result);
+        })
+
         // Get api to get country wise accommodation
         app.get('/accommodation', async (req, res) => {
             try {
