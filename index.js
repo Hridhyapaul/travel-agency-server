@@ -104,6 +104,20 @@ async function run() {
             res.send(result)
         })
 
+        // Created GET API for finding user email is Admin or not... 
+        app.get('/users/admin/:email', async (req, res) => {
+            const email = req.params.email;
+
+            if (req.decoded.email !== email) {
+                res.send({ admin: false })
+            }
+
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result = { admin: user?.role === 'Admin' }
+            res.send(result);
+        })
+
         // Create a GET API for getting destinations...
         app.get('/destinations', async (req, res) => {
             const places = await destinationsCollection.find().toArray();
@@ -152,6 +166,7 @@ async function run() {
             res.send(result);
         })
 
+        // Create a POST API for updating country...
         app.put('/countries/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
