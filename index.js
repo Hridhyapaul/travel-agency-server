@@ -140,6 +140,12 @@ async function run() {
             res.send(places)
         })
 
+        // Create a GET API for getting popular destinations...
+        app.get('/popularDestinations', async (req, res) => {
+            const result = await destinationsCollection.find().sort({ sold_Tickets: -1 }).toArray()
+            res.send(result)
+        })
+
         // Create a POST API for adding destinations...
         app.post('/destinations', async (req, res) => {
             const query = req.body
@@ -192,7 +198,7 @@ async function run() {
             const query = { country: details.country }
             const existingCountry = await countryCollection.findOne(query)
             if (existingCountry) {
-                return res.send({ message: 'Country already exist' })
+                return res.status(400).json({ message: 'Country already exist', countryName: existingCountry.country });
             }
             const result = await countryCollection.insertOne(details)
             res.send(result)
@@ -391,7 +397,11 @@ async function run() {
             const query = { _id: { $in: payments.bookingItem_id.map(id => new ObjectId(id)) } }
             const deleteResult = await bookingRequestCollection.deleteMany(query)
 
-            res.send({ insertResult, deleteResult })
+            const updateDestinationsQuery = { _id: { $in: payments.accommodation_id.map(id => new ObjectId(id)) } };
+            const updateDestinationsOptions = { $inc: { sold_Tickets: 1} };
+            const updateCourseResult = await destinationsCollection.updateMany(updateDestinationsQuery, updateDestinationsOptions);
+
+            res.send({ insertResult, deleteResult, updateCourseResult })
         })
 
         // Get api to get payments by query email
