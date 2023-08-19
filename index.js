@@ -15,6 +15,7 @@ app.use(express.json());
 // Implemented JWT verification middleware
 const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
+    // console.log(authorization)
     if (!authorization) {
         return res.status(401).send({ error: true, message: 'unauthorized access' });
     }
@@ -105,7 +106,7 @@ async function run() {
         })
 
         // Created GET API for finding user email is Admin or not... 
-        app.get('/users/admin/:email', async (req, res) => {
+        app.get('/users/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
 
             if (req.decoded.email !== email) {
@@ -119,7 +120,7 @@ async function run() {
         })
 
         // Created GET API for finding user email is traveler or not...
-        app.get('/users/traveler/:email', async (req, res) => {
+        app.get('/users/traveler/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
 
             if (req.decoded.email !== email) {
@@ -151,6 +152,31 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await destinationsCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        // Create a POST API for updating accommodation...
+        app.put('/destinations/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updateAccommodation = req.body;
+            const accommodations = {
+                $set: {
+                    name: updateAccommodation.name,
+                    location: updateAccommodation.location,
+                    about: updateAccommodation.about,
+                    countryName: updateAccommodation.countryName,
+                    image: updateAccommodation.image,
+                    price: updateAccommodation.price,
+                    numberOfDay: updateAccommodation.numberOfDay,
+                    details: updateAccommodation.details,
+                    reviews: updateAccommodation.reviews,
+                    tourPlan: updateAccommodation.tourPlan,
+                    includedServices: updateAccommodation.includedServices,
+                },
+            }
+            const result = await destinationsCollection.updateOne(filter, accommodations, options)
             res.send(result);
         })
 
