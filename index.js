@@ -186,6 +186,33 @@ async function run() {
             res.send(result);
         })
 
+        app.post('/destinations/:destinationId/addReview', async (req, res) => {
+            try {
+                const destinationId = req.params.destinationId;
+                const newReview = req.body;
+        
+                // Find the destination with the specified ID
+                const query = { _id: new ObjectId(destinationId) };
+                const destination = await destinationsCollection.findOne(query);
+        
+                if (!destination) {
+                    return res.status(404).json({ error: 'Destination not found' });
+                }
+        
+                // Add the new review to the 'reviews' array of the destination
+                destination.reviews.push(newReview);
+        
+                // Update the document in the collection with the new review
+                await destinationsCollection.updateOne(query, { $set: { reviews: destination.reviews } });
+        
+                res.status(201).json({ message: 'Review submitted successfully' });
+            } catch (error) {
+                console.error('An error occurred:', error);
+                res.status(500).json({ error: 'Error submitting review' });
+            }
+        });
+        
+
         // Get country api...
         app.get('/countries', async (req, res) => {
             const result = await countryCollection.find().toArray();
@@ -398,7 +425,7 @@ async function run() {
             const deleteResult = await bookingRequestCollection.deleteMany(query)
 
             const updateDestinationsQuery = { _id: { $in: payments.accommodation_id.map(id => new ObjectId(id)) } };
-            const updateDestinationsOptions = { $inc: { sold_Tickets: 1} };
+            const updateDestinationsOptions = { $inc: { sold_Tickets: 1 } };
             const updateCourseResult = await destinationsCollection.updateMany(updateDestinationsQuery, updateDestinationsOptions);
 
             res.send({ insertResult, deleteResult, updateCourseResult })
