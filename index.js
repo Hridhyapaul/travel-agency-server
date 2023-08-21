@@ -646,6 +646,11 @@ async function run() {
             res.send(result)
         })
 
+        // Create GET API to get user contact message
+        app.get('/contactMessage', async (req, res) => {
+            const result = await contactMessageCollection.find().toArray();
+            res.send(result)
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
