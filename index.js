@@ -54,6 +54,7 @@ async function run() {
         // const bookingCollection = client.db("travelODB").collection("booking");
         const bookingRequestCollection = client.db("travelODB").collection("bookingRequest");
         const paymentsCollection = client.db("travelODB").collection("payments");
+        const contactMessageCollection = client.db("travelODB").collection("contactMessage");
 
         // Created JWT Generation Route
         app.post('/jwt', (req, res) => {
@@ -136,7 +137,6 @@ async function run() {
         // Create a GET API for getting destinations...
         app.get('/destinations', async (req, res) => {
             const places = await destinationsCollection.find().toArray();
-            // const count = await destinationsCollection.estimatedDocumentCount();
             res.send(places)
         })
 
@@ -186,32 +186,28 @@ async function run() {
             res.send(result);
         })
 
+        // Create a POST API for inserting review...
         app.post('/destinations/:destinationId/addReview', async (req, res) => {
-            try {
-                const destinationId = req.params.destinationId;
-                const newReview = req.body;
-        
-                // Find the destination with the specified ID
-                const query = { _id: new ObjectId(destinationId) };
-                const destination = await destinationsCollection.findOne(query);
-        
-                if (!destination) {
-                    return res.status(404).json({ error: 'Destination not found' });
-                }
-        
-                // Add the new review to the 'reviews' array of the destination
-                destination.reviews.push(newReview);
-        
-                // Update the document in the collection with the new review
-                await destinationsCollection.updateOne(query, { $set: { reviews: destination.reviews } });
-        
-                res.status(201).json({ message: 'Review submitted successfully' });
-            } catch (error) {
-                console.error('An error occurred:', error);
-                res.status(500).json({ error: 'Error submitting review' });
+            const destinationId = req.params.destinationId;
+            const newReview = req.body;
+
+            // <----- Find the destination with the specified ID ----->
+            const query = { _id: new ObjectId(destinationId) };
+            const destination = await destinationsCollection.findOne(query);
+
+            if (!destination) {
+                return res.status(404).json({ error: 'Destination not found' });
             }
+
+            // <----- Add the new review to the 'reviews' array of the destination ----->
+            destination.reviews.push(newReview);
+
+            // <----- Update the document in the collection with the new review ----->
+            const result = await destinationsCollection.updateOne(query, { $set: { reviews: destination.reviews } });
+
+            res.send(result)
         });
-        
+
 
         // Get country api...
         app.get('/countries', async (req, res) => {
@@ -367,8 +363,12 @@ async function run() {
         app.get('/accommodation/:id', async (req, res) => {
             const id = (req.params.id);
             const query = { _id: new ObjectId(id) }
+            const sort = { date: -1 };
             try {
                 const result = await destinationsCollection.findOne(query)
+                if (result && result.reviews) {
+                    result.reviews.sort((a, b) => new Date(b.date) - new Date(a.date));
+                }
                 res.send(result);
             } catch (error) {
                 console.error('Error fetching accommodation details:', error);
@@ -638,6 +638,13 @@ async function run() {
                 res.status(500).send('Internal Server Error');
             }
         });
+
+        // Create POST API to insert user contact message
+        app.post('/contactMessage', async (req, res) => {
+            const query = req.body
+            const result = await contactMessageCollection.insertOne(query)
+            res.send(result)
+        })
 
 
         // Send a ping to confirm a successful connection
