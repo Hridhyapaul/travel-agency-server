@@ -154,7 +154,7 @@ async function run() {
         })
 
         // Create a DELETE API for deleting single destinations...
-        app.delete('/destinations/:id', async (req, res) => {
+        app.delete('/destinations/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await destinationsCollection.deleteOne(query);
@@ -228,7 +228,7 @@ async function run() {
         })
 
         // Create a DELETE API for deleting single country...
-        app.delete('/countries/:id', async (req, res) => {
+        app.delete('/countries/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await countryCollection.deleteOne(query);
@@ -384,7 +384,7 @@ async function run() {
         })
 
         // Get api to get book list of user...
-        app.get('/bookingRequest', async (req, res) => {
+        app.get('/bookingRequest', verifyJWT, async (req, res) => {
             const email = req.query.email
             if (!email) {
                 res.send([])
@@ -395,7 +395,7 @@ async function run() {
         })
 
         // Delete api to delete booking request...
-        app.delete('/bookingRequest/:id', async (req, res) => {
+        app.delete('/bookingRequest/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await bookingRequestCollection.deleteOne(query);
@@ -403,7 +403,7 @@ async function run() {
         })
 
         // Payment intent api...
-        app.post('/create-payment-intent', async (req, res) => {
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
             const { price } = req.body;
             const amount = parseInt(price * 100);
             const paymentIntent = await stripe.paymentIntents.create({
@@ -416,7 +416,7 @@ async function run() {
             })
         })
 
-        app.post('/payments', async (req, res) => {
+        app.post('/payments', verifyJWT, async (req, res) => {
             // Payment saved to the database....
             const payments = req.body;
             const insertResult = await paymentsCollection.insertOne(payments)
@@ -432,7 +432,7 @@ async function run() {
         })
 
         // Get api to get payments by query email
-        app.get('/payments', async (req, res) => {
+        app.get('/payments', verifyJWT, async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
             const sort = { date: -1 };
@@ -441,13 +441,14 @@ async function run() {
         })
 
         // Get api to get all payments
-        app.get('/allPayments', async (req, res) => {
-            const result = await paymentsCollection.find().toArray();
+        app.get('/allPayments', verifyJWT, verifyAdmin, async (req, res) => {
+            const sort = { date: -1 };
+            const result = await paymentsCollection.find().sort(sort).toArray();
             res.send(result);
         })
 
         // finding booking collection apis
-        app.get('/booking', async (req, res) => {
+        app.get('/booking', verifyJWT, async (req, res) => {
             try {
                 const email = req.query.email;
                 const query = { email: email };
@@ -523,7 +524,7 @@ async function run() {
             }
         });
 
-        app.get('/countryStats', async (req, res) => {
+        app.get('/countryStats', verifyJWT, verifyAdmin, async (req, res) => {
             try {
                 // Fetch payments based on the provided email
                 const payments = await paymentsCollection.find().toArray();
@@ -560,7 +561,7 @@ async function run() {
         });
 
         // finding all booking collection apis
-        app.get('/allBooking', async (req, res) => {
+        app.get('/allBooking', verifyJWT, verifyAdmin, async (req, res) => {
             try {
                 // Fetch payments based on the provided email
                 const payments = await paymentsCollection.find().toArray();
@@ -647,16 +648,16 @@ async function run() {
         })
 
         // Create GET API to get user contact message
-        app.get('/contactMessage', async (req, res) => {
+        app.get('/contactMessage', verifyJWT, verifyAdmin, async (req, res) => {
             const result = await contactMessageCollection.find().toArray();
             res.send(result)
         })
 
         // Create GET API to get single user contact message
-        app.get('/contactMessage/:id', async (req, res) => {
-            const id = req.params.id
-            const query = { _id: new ObjectId(id) }
-            const result = await contactMessageCollection.findOne(query);
+        app.get('/message', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const query = { userEmail: email };
+            const result = await contactMessageCollection.find(query).toArray();
             res.send(result)
         })
 
