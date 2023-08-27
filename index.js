@@ -134,6 +134,20 @@ async function run() {
             res.send(result);
         })
 
+        // Created GET API for finding user email take any service or not...
+        app.get('/users/tookService/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+
+            if (req.decoded.email !== email) {
+                res.send({ tookService: false })
+            }
+
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result = { tookService: user?.took_Service === true }
+            res.send(result);
+        })
+
         // Create a GET API for getting destinations...
         app.get('/destinations', async (req, res) => {
             const places = await destinationsCollection.find().toArray();
@@ -428,7 +442,19 @@ async function run() {
             const updateDestinationsOptions = { $inc: { sold_Tickets: 1 } };
             const updateCourseResult = await destinationsCollection.updateMany(updateDestinationsQuery, updateDestinationsOptions);
 
-            res.send({ insertResult, deleteResult, updateCourseResult })
+            // Update users after payment...
+
+            const updateUserQuery = { email: req.body.email }; // Use the email to identify the user
+            const updateUserUpdate = { $set: { took_Service: true } }; // Set took_Service to true
+            const updateUserOptions = { returnOriginal: false }; // Return the updated document
+
+            const updatedUser = await usersCollection.findOneAndUpdate(
+                updateUserQuery,
+                updateUserUpdate,
+                updateUserOptions
+            );
+
+            res.send({ insertResult, deleteResult, updateCourseResult, updatedUser })
         })
 
         // Get api to get payments by query email
